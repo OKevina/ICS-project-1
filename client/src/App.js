@@ -1,5 +1,5 @@
 // src/App.js
-import React from "react";
+import React, { useEffect } from "react"; // Import useEffect
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import axios from "axios"; // Import axios here
 
 // Authentication Components
 import Login from "./components/auth/Login";
@@ -19,16 +20,16 @@ import Home from "./components/Home";
 // Farmer Portal Components (all located in src/components/farmer/)
 import Dashboard from "./components/farmer/Dashboard";
 import AddProductForm from "./components/farmer/AddProductForm";
-import Products from "./components/farmer/Products"; // New: Ensure this file exists in src/components/farmer/
-import Inventory from "./components/farmer/Inventory"; // New: Ensure this file exists in src/components/farmer/
-import Orders from "./components/farmer/Orders"; // New: Ensure this file exists in src/components/farmer/
-import Analytics from "./components/farmer/Analytics"; // New: Ensure this file exists in src/components/farmer/
+import Products from "./components/farmer/Products";
+import Inventory from "./components/farmer/Inventory";
+import Orders from "./components/farmer/Orders";
+import Analytics from "./components/farmer/Analytics";
 
 // Consumer Portal Components
-import ConsumerDashboard from "./components/consumer/Dashboard"; // Ensure this path is correct
+import ConsumerDashboard from "./components/consumer/Dashboard";
 
 // Admin Portal Components
-import AdminDashboard from "./components/admin/Dashboard"; // Ensure this path is correct
+import AdminDashboard from "./components/admin/Dashboard";
 
 // Define your Material-UI theme
 const theme = createTheme({
@@ -50,6 +51,25 @@ const theme = createTheme({
     fontFamily: "Inter, sans-serif", // Use Inter font
   },
 });
+
+// --- AXIOS INTERCEPTOR CONFIGURATION ---
+// This will run once when the module is loaded.
+axios.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token');
+    // If a token exists, add it to the Authorization header
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    // Do something with request error
+    return Promise.reject(error);
+  }
+);
+// --- END AXIOS INTERCEPTOR CONFIGURATION ---
+
 
 // ProtectedRoute Component for authorization based on token and role
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -82,6 +102,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 };
 
 function App() {
+  // useEffect is not strictly needed for the interceptor here, as it's outside the component
+  // but it can be used for debugging or other global setup if required.
+  // For instance, you could log when the interceptor is set up:
+  useEffect(() => {
+    console.log('App component mounted. Axios interceptor should be active.');
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />{" "}

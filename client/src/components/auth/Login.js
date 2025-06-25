@@ -54,7 +54,8 @@ const Login = () => {
 
     try {
       if (role === "ADMIN") {
-        const response = await axios.post("http://localhost:5000/api/login", {
+        // Updated URL to include /auth prefix
+        const response = await axios.post("http://localhost:5000/api/auth/login", {
           email,
           password,
           role, // Send role for admin login as well, helps backend differentiate
@@ -66,7 +67,8 @@ const Login = () => {
         redirectToDashboard(response.data.user.role); // Redirect based on the actual role
       } else {
         // For FARMER/CONSUMER, initiating OTP flow
-        const response = await axios.post("http://localhost:5000/api/login", {
+        // Updated URL to include /auth prefix
+        const response = await axios.post("http://localhost:5000/api/auth/login", {
           phone,
           role, // Send role with phone to help backend filter users by role for OTP
         });
@@ -93,8 +95,9 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // Updated URL to include /auth prefix
       const response = await axios.post(
-        "http://localhost:5000/api/verify-otp",
+        "http://localhost:5000/api/auth/verify-otp",
         {
           userId, // The userId received from the first login step
           otp,

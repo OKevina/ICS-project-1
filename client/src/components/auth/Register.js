@@ -46,7 +46,8 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/register', formData);
+      // Updated URL to include /auth prefix
+      await axios.post('http://localhost:5000/api/auth/register', formData);
       navigate('/login');
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed');
@@ -361,4 +362,4 @@ const Register = () => {
   );
 };
 
-export default Register; 
+export default Register;
