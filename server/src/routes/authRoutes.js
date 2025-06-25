@@ -1,14 +1,13 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authController = require('../controllers/authController');
+const authController = require("../controllers/authController");
+// const authMiddleware = require('../middleware/authMiddleware'); // <-- DO NOT import/use here if you don't need it for login/register itself
 
-// Login route
-router.post('/login', authController.login);
+// These routes DO NOT require an Authorization header to be present,
+// as they are the entry points for authentication.
 
-// Registration route
-router.post('/register', authController.register);
+router.post("/register", authController.register);
+router.post("/login", authController.login); // Frontend posts phone/email/password/role here
+router.post("/verify-otp", authController.verifyOTP); // Frontend posts userId/otp here
 
-// OTP verification route
-router.post('/verify-otp', authController.verifyOTP);
-
-module.exports = router; 
+module.exports = router;
