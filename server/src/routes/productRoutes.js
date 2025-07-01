@@ -2,9 +2,6 @@
 const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/productController"); // Path adjusted
-const authMiddleware = require("../middleware/authMiddleware"); // Path adjusted
-
-router.use(authMiddleware);
 
 router.get("/products", productController.getProducts);
 router.get("/products/:id", productController.getProductById);

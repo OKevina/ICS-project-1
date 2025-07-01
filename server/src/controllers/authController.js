@@ -1,179 +1,74 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
 const prisma = new PrismaClient();
 
-// Generate OTP
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-// Login controller
-exports.login = async (req, res) => {
-  try {
-    const { email, phone, password, role } = req.body;
-
-    // Admin login
-    if (role === 'ADMIN') {
-      if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required for admin login' });
-      }
-
-      const admin = await prisma.user.findUnique({
-        where: { email, role: 'ADMIN' }
-      });
-
-      if (!admin) {
-        return res.status(404).json({ message: 'Admin not found' });
-      }
-
-      const validPassword = await bcrypt.compare(password, admin.password);
-      if (!validPassword) {
-        return res.status(401).json({ message: 'Invalid password' });
-      }
-
-      const token = jwt.sign(
-        { userId: admin.id, role: admin.role },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      return res.json({ token, user: { id: admin.id, name: admin.name, role: admin.role } });
-    }
-
-    // Farmer/Consumer login
-    if (!phone) {
-      return res.status(400).json({ message: 'Phone number is required' });
-    }
-
-    const user = await prisma.user.findFirst({
-      where: { phone, role: { in: ['FARMER', 'CONSUMER'] } }
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Generate and save OTP
-    const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    await prisma.oTP.create({
-      data: {
-        code: otp,
-        phone,
-        expiresAt,
-        userId: user.id
-      }
-    });
-
-    // In production, send OTP via SMS service
-    console.log(`OTP for ${phone}: ${otp}`);
-
-    res.json({ message: 'OTP sent successfully', userId: user.id });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-// Register controller
 exports.register = async (req, res) => {
   try {
-    const { name, email, phone, password, role, farmName, location, address } = req.body;
-
-    // Validate required fields based on role
-    if (role === 'ADMIN' && (!email || !password)) {
-      return res.status(400).json({ message: 'Email and password are required for admin registration' });
+    console.log('Got registration request', req.body);
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      console.log("Missing fields");
+      return res.status(400).json({ message: "All fields are required." });
     }
-
-    if (role === 'FARMER' && (!name || !phone || !farmName || !location)) {
-      return res.status(400).json({ message: 'Name, phone, farm name, and location are required for farmer registration' });
-    }
-
-    if (role === 'CONSUMER' && (!name || !phone || !address)) {
-      return res.status(400).json({ message: 'Name, phone, and address are required for consumer registration' });
-    }
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: email || undefined },
-          { phone: phone || undefined }
-        ]
-      }
-    });
-
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: 'User with this email or phone already exists' });
+      console.log("User already exists:", email);
+      return res.status(409).json({ message: "Email already in use." });
     }
-
-    // Create user
-    const userData = {
-      name,
-      role,
-      ...(email && { email }),
-      ...(phone && { phone }),
-      ...(password && { password: await bcrypt.hash(password, 10) }),
-      ...(farmName && { farmName }),
-      ...(location && { location }),
-      ...(address && { address })
-    };
-
+    // Insert user
+    console.log('Inserting user...');
     const user = await prisma.user.create({
-      data: userData
+      data: {
+        name,
+        email,
+        password, // plain text for now
+        role: "CONSUMER"
+      },
     });
-
-    res.status(201).json({ message: 'User registered successfully', userId: user.id });
+    console.log('Inserted user:', user);
+    res.status(201).json({ message: "Registration successful!" });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Registration failed:", error);
+    res.status(500).json({ message: "Registration failed." });
   }
 };
 
-// Verify OTP controller
-exports.verifyOTP = async (req, res) => {
+exports.login = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
-
-    const otpRecord = await prisma.oTP.findFirst({
-      where: {
-        userId,
-        code: otp,
-        used: false,
-        expiresAt: { gt: new Date() }
-      },
-      include: { user: true }
-    });
-
-    if (!otpRecord) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    console.log("Login request body:", req.body);
+    const { email, password } = req.body;
+    if (!email || !password) {
+      console.log("Missing fields");
+      return res.status(400).json({ message: "All fields are required." });
     }
-
-    // Mark OTP as used
-    await prisma.oTP.update({
-      where: { id: otpRecord.id },
-      data: { used: true }
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
     });
-
-    // Generate JWT token
+    if (!user || !user.password) {
+      console.log("User not found or no password:", email);
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+    const isMatch = password === user.password;
+    if (!isMatch) {
+      console.log("Password mismatch for:", email);
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+    console.log("Login successful for:", email);
     const token = jwt.sign(
-      { userId: otpRecord.user.id, role: otpRecord.user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET || "devsecret",
+      { expiresIn: "7d" }
     );
-
-    res.json({
-      token,
-      user: {
-        id: otpRecord.user.id,
-        name: otpRecord.user.name,
-        role: otpRecord.user.role
-      }
-    });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    console.error('OTP verification error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Login failed." });
   }
 }; 
