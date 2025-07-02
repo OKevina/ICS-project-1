@@ -14,12 +14,14 @@ import {
   CircularProgress,
   Alert,
   Avatar,
-  TablePagination, // Added for pagination
-  TextField, // Added for search
-  InputAdornment, // Added for search icon
+  TablePagination,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
-import FarmerLayout from "../../layouts/FarmerLayout"; // Corrected path
+import FarmerLayout from "../../layouts/FarmerLayout";
+
+const API_BASE_URL = "http://localhost:5000";
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -34,8 +36,8 @@ const Inventory = () => {
       try {
         setLoading(true);
         setError("");
-        const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
-        const response = await axios.get("http://localhost:5000/api/products", {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${API_BASE_URL}/api/products`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -140,7 +142,12 @@ const Inventory = () => {
                     <TableRow key={product.id}>
                       <TableCell>
                         <Avatar
-                          src={product.imageUrl}
+                          src={
+                            product.imageUrl
+                              ? `${API_BASE_URL}${product.imageUrl}`
+                              : "https://via.placeholder.com/40?text=No+Image"
+                          }
+                          alt={product.name}
                           variant="rounded"
                           sx={{ width: 40, height: 40 }}
                         />
@@ -149,7 +156,7 @@ const Inventory = () => {
                       <TableCell>
                         {product.category ? product.category.name : "N/A"}
                       </TableCell>
-                      <TableCell>${product.price.toFixed(2)}</TableCell>
+                      <TableCell>Ksh {product.price.toFixed(2)}</TableCell>
                       <TableCell
                         sx={{
                           color: product.stock < 10 ? "#E53935" : "inherit",

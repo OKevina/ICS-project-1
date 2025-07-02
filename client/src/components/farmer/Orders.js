@@ -23,22 +23,25 @@ import {
   CheckCircleOutline as CheckCircleOutlineIcon,
   LocalShipping as LocalShippingIcon,
   DoneAll as DoneAllIcon,
+  Cancel as CancelIcon, // Added Cancel icon
 } from "@mui/icons-material";
-import FarmerLayout from "../../layouts/FarmerLayout"; // Corrected path
+import FarmerLayout from "../../layouts/FarmerLayout";
+
+const API_BASE_URL = "http://localhost:5000";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null); // For menu
-  const [selectedOrderId, setSelectedOrderId] = useState(null); // For selected order in menu
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
   const statusColors = {
     PENDING: "warning",
     PROCESSING: "info",
     SHIPPED: "primary",
     DELIVERED: "success",
-    CANCELLED: "error",
+    CANCELLED: "error", // Added color for CANCELLED
   };
 
   useEffect(() => {
@@ -47,10 +50,7 @@ const Orders = () => {
         setLoading(true);
         setError("");
         const token = localStorage.getItem("token");
-        // IMPORTANT: In a real application, this endpoint should be '/api/farmer/orders'
-        // and your backend should filter orders relevant to the logged-in farmer.
-        // For this example, it fetches all orders.
-        const response = await axios.get("http://localhost:5000/api/orders", {
+        const response = await axios.get(`${API_BASE_URL}/api/orders`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -81,7 +81,7 @@ const Orders = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/api/orders/${selectedOrderId}/status`,
+        `${API_BASE_URL}/api/orders/${selectedOrderId}/status`,
         { status: newStatus },
         {
           headers: {
@@ -89,7 +89,6 @@ const Orders = () => {
           },
         }
       );
-      // Update the local state to reflect the status change
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === selectedOrderId ? { ...order, status: newStatus } : order
@@ -152,9 +151,8 @@ const Orders = () => {
                     <TableCell>{order.id.substring(0, 8)}...</TableCell>
                     <TableCell>
                       {order.user ? order.user.name : "N/A"}
-                    </TableCell>{" "}
-                    {/* Assuming user is populated */}
-                    <TableCell>${order.total.toFixed(2)}</TableCell>
+                    </TableCell>
+                    <TableCell>Ksh {order.total.toFixed(2)}</TableCell>
                     <TableCell>
                       <Chip
                         label={order.status}
@@ -208,7 +206,11 @@ const Orders = () => {
                       >
                         <MenuItem
                           onClick={() => handleUpdateOrderStatus("PROCESSING")}
-                          disabled={order.status === "PROCESSING"}
+                          disabled={
+                            order.status === "PROCESSING" ||
+                            order.status === "CANCELLED" ||
+                            order.status === "DELIVERED"
+                          }
                         >
                           <CheckCircleOutlineIcon
                             fontSize="small"
@@ -220,7 +222,9 @@ const Orders = () => {
                           onClick={() => handleUpdateOrderStatus("SHIPPED")}
                           disabled={
                             order.status === "SHIPPED" ||
-                            order.status === "PENDING"
+                            order.status === "PENDING" ||
+                            order.status === "CANCELLED" ||
+                            order.status === "DELIVERED"
                           }
                         >
                           <LocalShippingIcon fontSize="small" sx={{ mr: 1 }} />{" "}
@@ -231,13 +235,22 @@ const Orders = () => {
                           disabled={
                             order.status === "DELIVERED" ||
                             order.status === "PENDING" ||
-                            order.status === "PROCESSING"
+                            order.status === "PROCESSING" ||
+                            order.status === "CANCELLED"
                           }
                         >
                           <DoneAllIcon fontSize="small" sx={{ mr: 1 }} />{" "}
                           Deliver
                         </MenuItem>
-                        {/* Add Cancel option if desired */}
+                        <MenuItem
+                          onClick={() => handleUpdateOrderStatus("CANCELLED")}
+                          disabled={
+                            order.status === "DELIVERED" ||
+                            order.status === "CANCELLED"
+                          }
+                        >
+                          <CancelIcon fontSize="small" sx={{ mr: 1 }} /> Cancel
+                        </MenuItem>
                       </Menu>
                     </TableCell>
                   </TableRow>

@@ -1,6 +1,7 @@
 // src/components/farmer/Products.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -17,19 +18,22 @@ import {
   Avatar,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import FarmerLayout from "../../layouts/FarmerLayout"; // CORRECTED PATH
+import FarmerLayout from "../../layouts/FarmerLayout";
+
+const API_BASE_URL = "http://localhost:5000";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token"); // Assuming you store token in localStorage
-        const response = await axios.get("http://localhost:5000/api/products", {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${API_BASE_URL}/api/products`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -49,13 +53,12 @@ const Products = () => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:5000/api/products/${productId}`, {
+        await axios.delete(`${API_BASE_URL}/api/products/${productId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         setProducts(products.filter((product) => product.id !== productId));
-        // Optionally show a success message
       } catch (err) {
         console.error("Error deleting product:", err);
         setError("Failed to delete product. Please try again.");
@@ -64,9 +67,8 @@ const Products = () => {
   };
 
   const handleEditProduct = (productId) => {
-    // Navigate to an edit product form, potentially passing the product ID
-    // navigate(`/farmer/products/edit/${productId}`);
-    console.log("Edit product", productId);
+    // Navigate to the new EditProductForm
+    navigate(`/farmer/products/edit/${productId}`);
   };
 
   return (
@@ -117,7 +119,12 @@ const Products = () => {
                   <TableRow key={product.id}>
                     <TableCell>
                       <Avatar
-                        src={product.imageUrl}
+                        src={
+                          product.imageUrl
+                            ? `${API_BASE_URL}${product.imageUrl}`
+                            : "https://via.placeholder.com/40?text=No+Image"
+                        }
+                        alt={product.name}
                         variant="rounded"
                         sx={{ width: 40, height: 40 }}
                       />
@@ -125,9 +132,8 @@ const Products = () => {
                     <TableCell>{product.name}</TableCell>
                     <TableCell>
                       {product.category ? product.category.name : "N/A"}
-                    </TableCell>{" "}
-                    {/* Assuming category relation is fetched */}
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                    </TableCell>
+                    <TableCell>Ksh {product.price.toFixed(2)}</TableCell>
                     <TableCell
                       sx={{ color: product.stock < 10 ? "#E53935" : "inherit" }}
                     >

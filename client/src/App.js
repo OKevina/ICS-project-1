@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useEffect } from "react"; // Import useEffect
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import axios from "axios"; // Import axios here
+import axios from "axios";
 
 // Authentication Components
 import Login from "./components/auth/Login";
@@ -17,9 +17,10 @@ import Register from "./components/auth/Register";
 // General Home Page
 import Home from "./components/Home";
 
-// Farmer Portal Components (all located in src/components/farmer/)
+// Farmer Portal Components
 import Dashboard from "./components/farmer/Dashboard";
 import AddProductForm from "./components/farmer/AddProductForm";
+import EditProductForm from "./components/farmer/EditProductForm"; // Import the new EditProductForm
 import Products from "./components/farmer/Products";
 import Inventory from "./components/farmer/Inventory";
 import Orders from "./components/farmer/Orders";
@@ -52,38 +53,30 @@ const theme = createTheme({
   },
 });
 
-// --- AXIOS INTERCEPTOR CONFIGURATION ---
-// This will run once when the module is loaded.
+// AXIOS INTERCEPTOR CONFIGURATION
 axios.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('token');
-    // If a token exists, add it to the Authorization header
+  (config) => {
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  error => {
-    // Do something with request error
+  (error) => {
     return Promise.reject(error);
   }
 );
-// --- END AXIOS INTERCEPTOR CONFIGURATION ---
-
 
 // ProtectedRoute Component for authorization based on token and role
 const ProtectedRoute = ({ children, requiredRole }) => {
   const token = localStorage.getItem("token");
-  const userRole = localStorage.getItem("userRole"); // Retrieve user's role from localStorage
+  const userRole = localStorage.getItem("userRole");
 
   if (!token) {
-    // If no token, redirect to login page
     return <Navigate to="/login" />;
   }
 
   if (requiredRole && userRole !== requiredRole) {
-    // If token exists but user's role doesn't match the required role
-    // Redirect to a dashboard based on their actual role, or a generic home/unauthorized page
     if (userRole === "FARMER") {
       return <Navigate to="/farmer/dashboard" />;
     }
@@ -93,26 +86,21 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     if (userRole === "ADMIN") {
       return <Navigate to="/admin/dashboard" />;
     }
-    // Fallback if role is unknown or doesn't match any specific dashboard
     return <Navigate to="/" />;
   }
 
-  // If authenticated and authorized, render the children components
   return children;
 };
 
 function App() {
-  // useEffect is not strictly needed for the interceptor here, as it's outside the component
-  // but it can be used for debugging or other global setup if required.
-  // For instance, you could log when the interceptor is set up:
+  // useEffect for global setup or debugging, if needed.
   useEffect(() => {
-    console.log('App component mounted. Axios interceptor should be active.');
+    console.log("App component mounted. Axios interceptor should be active.");
   }, []);
 
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />{" "}
-      {/* Provides a consistent baseline for CSS across browsers */}
+      <CssBaseline />
       <Router>
         <Routes>
           {/* Public Routes */}
@@ -133,7 +121,7 @@ function App() {
             }
           />
           <Route
-            path="/farmer/add-product"
+            path="/farmer/products/add" // Route for adding a new product
             element={
               <ProtectedRoute requiredRole="FARMER">
                 <AddProductForm />
@@ -141,10 +129,18 @@ function App() {
             }
           />
           <Route
+            path="/farmer/products/edit/:productId" // Route for editing an existing product
+            element={
+              <ProtectedRoute requiredRole="FARMER">
+                <EditProductForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/farmer/products"
             element={
               <ProtectedRoute requiredRole="FARMER">
-                <Products /> {/* This will render the new Products page */}
+                <Products />
               </ProtectedRoute>
             }
           />
@@ -152,7 +148,7 @@ function App() {
             path="/farmer/inventory"
             element={
               <ProtectedRoute requiredRole="FARMER">
-                <Inventory /> {/* This will render the new Inventory page */}
+                <Inventory />
               </ProtectedRoute>
             }
           />
@@ -160,7 +156,7 @@ function App() {
             path="/farmer/orders"
             element={
               <ProtectedRoute requiredRole="FARMER">
-                <Orders /> {/* This will render the new Orders page */}
+                <Orders />
               </ProtectedRoute>
             }
           />
@@ -168,7 +164,7 @@ function App() {
             path="/farmer/analytics"
             element={
               <ProtectedRoute requiredRole="FARMER">
-                <Analytics /> {/* This will render the new Analytics page */}
+                <Analytics />
               </ProtectedRoute>
             }
           />
